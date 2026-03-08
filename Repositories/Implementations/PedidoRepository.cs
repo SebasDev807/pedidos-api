@@ -28,13 +28,14 @@ public class PedidoRepository : IPedidoRepository
             _context.Pedidos.Remove(pedido);
     }
 
-    public async Task<IEnumerable<Pedido>> GetAllAsync()
-    {
-        var pedidos = await _context.Pedidos.ToListAsync();
-        return pedidos;
-
+    public async Task<IEnumerable<Pedido>> GetAllAsync() {
+       return await _context.Pedidos
+           .Include(p => p.EstadoPedido)
+           .Include(p => p.Cliente)
+           .Include(p => p.DetallesPedido)
+               .ThenInclude(d => d.Producto)
+           .ToListAsync();
     }
-
     public async Task<IEnumerable<Pedido>> GetByClienteAsync(int clienteId)
     {
         return await _context.Pedidos
@@ -56,7 +57,7 @@ public class PedidoRepository : IPedidoRepository
             .Include(pedido => pedido.EstadoPedido)
             .Include(pedido => pedido.Cliente)
             .FirstOrDefaultAsync(pedido => pedido.Id == id);
-            
+
         return pedido;
     }
 

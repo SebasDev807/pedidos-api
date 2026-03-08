@@ -1,9 +1,12 @@
 namespace DeliveryApi.Controllers;
 
+using System.Security.Claims;
 using DeliveryApi.DTOs.Pedidos;
 using DeliveryApi.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class PedidosController : ControllerBase
@@ -16,10 +19,29 @@ public class PedidosController : ControllerBase
     }
 
     [HttpGet]
+    [HttpGet]
     public async Task<IActionResult> GetAll()
     {
         var pedidos = await _service.GetAllAsync();
-        return Ok(pedidos);
+
+        var response = pedidos.Select(pedido => new PedidoResponseDto
+        {
+            Id = pedido.Id,
+            DireccionEntrega = pedido.DireccionEntrega,
+            Total = pedido.Total,
+            Estado = pedido.EstadoPedido?.Nombre ?? "Desconocido",
+            FechaCreacion = pedido.FechaCreacion,
+            FechaEntrega = pedido.FechaEntrega,
+            Detalles = pedido.DetallesPedido.Select(d => new DetalleResponseDto
+            {
+                Producto = d.Producto?.Nombre ?? "Desconocido",
+                Cantidad = d.Cantidad,
+                PrecioUnitario = d.PrecioUnitario,
+                Subtotal = d.Subtotal
+            }).ToList()
+        });
+
+        return Ok(response);
     }
 
     [HttpGet("{id}")]
@@ -54,13 +76,16 @@ public class PedidosController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CrearPedidoDto crearPedidoDto)
     {
+
+        var usuarioId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         var items = crearPedidoDto.Items
             .Select(item => (item.ProductoId, item.Cantidad))
             .ToList();
 
         var pedido = await _service.CreateAsync(
             crearPedidoDto.ClienteId,
-            1, //Hardcodeado por ahora
+            usuarioId,
             crearPedidoDto.DireccionEntrega,
             items
         );

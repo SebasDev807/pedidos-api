@@ -3,8 +3,10 @@ namespace DeliveryApi.Controllers;
 using DeliveryApi.DTOs.Productos;
 using DeliveryApi.Models;
 using DeliveryApi.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ProductosController : ControllerBase
