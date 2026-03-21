@@ -1,19 +1,19 @@
 namespace DeliveryApi.Controllers;
 
-using DeliveryApi.Data;
+using Dapper;
 using DeliveryApi.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 [ApiController]
 [Route("api/[controller]")]
 public class PruebaController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IDbConnection _db;
 
-    public PruebaController(AppDbContext context)
+    public PruebaController(IDbConnection db)
     {
-        _context = context;
+        _db = db;
     }
 
     // 1. Llama este primero
@@ -21,37 +21,25 @@ public class PruebaController : ControllerBase
     public async Task<IActionResult> Setup()
     {
         // Usuario
-        var usuario = new Usuario
-        {
-            Nombre = "Sebastian",
-            Email = "sebastian@test.com",
-            Password = "123456",
-            Rol = "cliente"
-        };
-        _context.Usuarios.Add(usuario);
-        await _context.SaveChangesAsync();
+        var usuarioId = await _db.ExecuteScalarAsync<int>(@"
+            INSERT INTO usuarios (nombre, email, contraseña, rol, telefono) 
+            VALUES ('Sebastian', 'sebastian@test.com', '123456', 'cliente', '3001234567')
+            RETURNING id");
 
         // Cliente
-        var cliente = new Cliente
-        {
-            Nombre = "Sebastian",
-            Telefono = "3001234567",
-            UsuarioId = usuario.Id
-        };
-        _context.Clientes.Add(cliente);
-        await _context.SaveChangesAsync();
+        var clienteId = await _db.ExecuteScalarAsync<int>(@"
+            INSERT INTO clientes (nombre, telefono, idUsuario) 
+            VALUES ('Sebastian', '3001234567', @UsuarioId)
+            RETURNING id", new { UsuarioId = usuarioId });
 
         // Productos
-        var productos = new List<Producto>
-        {
-            new Producto { Nombre = "Pizza Margarita", Descripcion = "Pizza clasica", Precio = 29.99m },
-            new Producto { Nombre = "Hamburguesa", Descripcion = "Con papas fritas", Precio = 19.99m },
-            new Producto { Nombre = "Gaseosa", Descripcion = "500ml", Precio = 5.99m }
-        };
-        _context.Productos.AddRange(productos);
-        await _context.SaveChangesAsync();
+        await _db.ExecuteAsync(@"
+            INSERT INTO productos (nombre, descripcion, precio) VALUES
+            ('Pizza Margarita', 'Pizza clasica', 29.99),
+            ('Hamburguesa', 'Con papas fritas', 19.99),
+            ('Gaseosa', '500ml', 5.99)");
 
-        return Ok(new { usuario, cliente, productos });
+        return Ok(new { usuarioId, clienteId });
     }
 
     // 2. Verifica que todo existe
@@ -60,11 +48,11 @@ public class PruebaController : ControllerBase
     {
         return Ok(new
         {
-            usuarios = await _context.Usuarios.CountAsync(),
-            clientes = await _context.Clientes.CountAsync(),
-            productos = await _context.Productos.CountAsync(),
-            estados = await _context.EstadosPedido.CountAsync(),
-            pedidos = await _context.Pedidos.CountAsync()
+            usuarios = await _db.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM usuarios"),
+            clientes = await _db.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM clientes"),
+            productos = await _db.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM productos"),
+            estados = await _db.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM estadosPedido"),
+            pedidos = await _db.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM pedidos")
         });
     }
 
@@ -72,11 +60,11 @@ public class PruebaController : ControllerBase
     [HttpDelete("limpiar")]
     public async Task<IActionResult> Limpiar()
     {
-        _context.Pedidos.RemoveRange(_context.Pedidos);
-        _context.Productos.RemoveRange(_context.Productos);
-        _context.Clientes.RemoveRange(_context.Clientes);
-        _context.Usuarios.RemoveRange(_context.Usuarios);
-        await _context.SaveChangesAsync();
+        await _db.ExecuteAsync("DELETE FROM detallePedido");
+        await _db.ExecuteAsync("DELETE FROM pedidos");
+        await _db.ExecuteAsync("DELETE FROM productos");
+        await _db.ExecuteAsync("DELETE FROM clientes");
+        await _db.ExecuteAsync("DELETE FROM usuarios");
         return Ok("Base de datos limpia");
     }
 }

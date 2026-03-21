@@ -26,51 +26,50 @@ public class AuthService : IAuthService
         _usuarioRepo = usuarioRepo;
         _clienteRepo = clienteRepo;
         _jwtSettings = jwtSettings.Value;
-    
+
     }
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto loginRequestDto)
     {
         var usuario = await _usuarioRepo.GetByEmailAsync(loginRequestDto.Email)
-            ?? throw new Exception("Email o contraseña incorrectos");
+            ?? throw new UnauthorizedAccessException("Email o contraseña incorrectos");
 
-        //Verificar hash con password
         if (!BCrypt.Net.BCrypt.Verify(loginRequestDto.Password, usuario.Password))
-            throw new Exception("Email o contraseña incorrectos");
+            throw new UnauthorizedAccessException("Email o contraseña incorrectos");
 
         return GenerarToken(usuario);
     }
 
-   public async Task<LoginResponseDto> RegisterAsync(RegisterDto dto)
-{
-    if (await _usuarioRepo.EmailExistsAsync(dto.Email))
-        throw new ConflictExcption("El email ya está registrado");
-
-    var usuario = new Usuario
+    public async Task<LoginResponseDto> RegisterAsync(RegisterDto dto)
     {
-        Nombre = dto.Nombre,
-        Email = dto.Email,
-        Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-        Rol = "cliente",
-        Telefono = dto.Telefono
-    };
+        if (await _usuarioRepo.EmailExistsAsync(dto.Email))
+            throw new ConflictExcption("El email ya está registrado");
 
-    await _usuarioRepo.AddAsync(usuario);
-    await _usuarioRepo.SaveAsync();
+        var usuario = new Usuario
+        {
+            Nombre = dto.Nombre,
+            Email = dto.Email,
+            Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            Rol = "cliente",
+            Telefono = dto.Telefono
+        };
 
-    // Crear el perfil de cliente automáticamente
-    var cliente = new Cliente
-    {
-        Nombre = dto.Nombre,
-        Telefono = dto.Telefono,
-        UsuarioId = usuario.Id
-    };
+        await _usuarioRepo.AddAsync(usuario);
+        await _usuarioRepo.SaveAsync();
 
-    await _clienteRepo.AddAsync(cliente);
-    await _clienteRepo.SaveAsync();
+        // Crear el perfil de cliente automáticamente
+        var cliente = new Cliente
+        {
+            Nombre = dto.Nombre,
+            Telefono = dto.Telefono,
+            UsuarioId = usuario.Id
+        };
 
-    return GenerarToken(usuario);
-}
+        await _clienteRepo.AddAsync(cliente);
+        await _clienteRepo.SaveAsync();
+
+        return GenerarToken(usuario);
+    }
 
     private LoginResponseDto GenerarToken(Usuario usuario)
     {

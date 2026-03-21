@@ -1,61 +1,86 @@
 namespace DeliveryApi.Repositories.Implementations;
 
-using DeliveryApi.Data;
+using Dapper;
 using DeliveryApi.Models;
 using DeliveryApi.Repositories.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 public class UsuarioRepository : IUsuarioRepository
 {
-    private readonly AppDbContext _context;
+    private readonly IDbConnection _db;
 
-    public UsuarioRepository(AppDbContext context)
+    public UsuarioRepository(IDbConnection db)
     {
-        _context = context;
+        _db = db;
     }
 
+    /// <summary>
+    /// Inserta un nuevo usuario en la base de datos
+    /// </summary>
+    /// <param name="entity">El usuario a insertar</param>
     public async Task AddAsync(Usuario entity)
     {
-        await _context.Usuarios.AddAsync(entity);
+        var id = await _db.ExecuteScalarAsync<int>(
+            "INSERT INTO usuarios (nombre, email, password, rol, telefono) VALUES (@Nombre, @Email, @Password, @Rol, @Telefono) RETURNING id", entity);
+        entity.Id = id;
     }
 
-    public async Task DeleteAsync(int id)
-    {
-        var usuario = await GetByIdAsync(id);
+    /// <summary>
+    /// Elimina un usuario por su ID
+    /// </summary>
+    /// <param name="id">ID del usuario a eliminar</param>
+    public async Task DeleteAsync(int id) =>
+        await _db.ExecuteAsync(
+            "DELETE FROM usuarios WHERE id = @Id", new { Id = id });
 
-        if (usuario != null)
-            _context.Usuarios.Remove(usuario);
-    }
-
+    /// <summary>
+    /// Verifica si un email ya existe en la base de datos
+    /// </summary>
+    /// <param name="email">Email a verificar</param>
+    /// <returns>True si el email existe, false en caso contrario</returns>
     public async Task<bool> EmailExistsAsync(string email)
     {
-        return await _context.Usuarios.AnyAsync(usuario => usuario.Email == email);
+        var result = await _db.ExecuteScalarAsync<int>(
+            "SELECT COUNT(1) FROM usuarios WHERE email = @Email", new { Email = email });
+        return result > 0;
     }
 
-    public async Task<IEnumerable<Usuario>> GetAllAsync()
-    {
-        var usuarios = await _context.Usuarios.ToListAsync();
-        return usuarios;
-    }
+    /// <summary>
+    /// Obtiene todos los usuarios
+    /// </summary>
+    /// <returns>Lista de todos los usuarios</returns>
+    public async Task<IEnumerable<Usuario>> GetAllAsync() =>
+        await _db.QueryAsync<Usuario>("SELECT * FROM usuarios");
 
-    public async Task<Usuario?> GetByEmailAsync(string email)
-    {
-        return await _context.Usuarios.FirstOrDefaultAsync(usuario => usuario.Email == email);
+    /// <summary>
+    /// Obtiene un usuario por su email
+    /// </summary>
+    /// <param name="email">Email del usuario</param>
+    /// <returns>El usuario encontrado o null</returns>
+    public async Task<Usuario?> GetByEmailAsync(string email) =>
+        await _db.QueryFirstOrDefaultAsync<Usuario>(
+            "SELECT * FROM usuarios WHERE email = @Email", new { Email = email });
 
-    }
+    /// <summary>
+    /// Obtiene un usuario por su ID
+    /// </summary>
+    /// <param name="id">ID del usuario</param>
+    /// <returns>El usuario encontrado o null</returns>
+    public async Task<Usuario?> GetByIdAsync(int id) =>
+        await _db.QueryFirstOrDefaultAsync<Usuario>(
+            "SELECT * FROM usuarios WHERE id = @Id", new { Id = id });
 
-    public async Task<Usuario?> GetByIdAsync(int id)
-    {
-        return await _context.Usuarios.FindAsync(id);
-    }
+    /// <summary>
+    /// Guarda los cambios pendientes. No requerido en Dapper ya que cada operacion es inmediata
+    /// </summary>
+    public async Task SaveAsync() =>
+        await Task.CompletedTask;
 
-    public async Task SaveAsync()
-    {
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task UpdateAsync(Usuario entity)
-    {
-        _context.Update(entity);
-    }
+    /// <summary>
+    /// Actualiza un usuario existente en la base de datos
+    /// </summary>
+    /// <param name="entity">El usuario con los datos actualizados</param>
+    public async Task UpdateAsync(Usuario entity) =>
+        await _db.ExecuteAsync(
+            "UPDATE usuarios SET nombre = @Nombre, email = @Email, password = @Password, rol = @Rol WHERE id = @Id", entity);
 }

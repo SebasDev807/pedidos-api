@@ -3,7 +3,7 @@ namespace DeliveryApi.DTOs.Pedidos;
 public class CrearPedidoDto
 {
     public int ClienteId { get; set; }
-    public string DireccionEntrega { get; set; } = null!;
+    public int IdDireccionEntrega { get; set; }
     public List<PedidoItemDto> Items { get; set; } = [];
 }
 

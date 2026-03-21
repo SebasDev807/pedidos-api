@@ -21,21 +21,20 @@ public class PedidoService : IPedidoService
 
 
     public async Task<Pedido> CreateAsync(
-        int clienteId,
-        int usuarioId,
-        string direccionEntrega,
-        List<(int ProductoId, int Cantidad)> items)
+    int clienteId,
+    int usuarioId,
+    int idDireccionEntrega,
+    List<(int ProductoId, int Cantidad)> items)
     {
         var detalles = new List<DetallePedido>();
         decimal total = 0;
 
-        // Por cada item busca el producto y calcula el subtotal
         foreach (var item in items)
         {
             var producto = await _productoRepo.GetByIdAsync(item.ProductoId);
 
             if (producto == null)
-                throw new Exception($"Producto {item.ProductoId} no encontrado.");
+                throw new KeyNotFoundException($"Producto {item.ProductoId} no encontrado.");
 
             decimal subtotal = producto.Precio * item.Cantidad;
             total += subtotal;
@@ -51,12 +50,13 @@ public class PedidoService : IPedidoService
 
         var pedido = new Pedido
         {
-            ClienteId = clienteId,
-            UsuarioId = usuarioId,
-            DireccionEntrega = direccionEntrega,
-            EstadoPedidoId = 1,       // Pendiente por defecto
-            Total = total,
+            IdCliente = clienteId,
+            IdUsuario = usuarioId,
+            IdDireccionEntrega = idDireccionEntrega,
+            IdEstado = 1,
+            ValorTotal = total,
             FechaCreacion = DateTime.UtcNow,
+            FechaEntrega = DateTime.UtcNow.AddDays(3), // 3 días por defecto
             DetallesPedido = detalles
         };
 
@@ -74,11 +74,9 @@ public class PedidoService : IPedidoService
     public async Task<Pedido?> GetByIdAsync(int id)
     {
         var pedido = await _pedidoRepo.getByIdWithDetailsAsync(id);
-        
+
         if (pedido == null)
-        {
-            throw new Exception($"Pedido con id {id} no existe");
-        }
+            throw new KeyNotFoundException($"Pedido con id {id} no existe");
 
         return pedido;
     }
@@ -86,9 +84,9 @@ public class PedidoService : IPedidoService
     public async Task UpdateEstadoAsync(int pedidoId, int nuevoEstadoId)
     {
         var pedido = await _pedidoRepo.GetByIdAsync(pedidoId)
-            ?? throw new Exception($"Pedido {pedidoId} no encontrado");
-        
-        pedido.EstadoPedidoId = nuevoEstadoId;
+            ?? throw new KeyNotFoundException($"Pedido {pedidoId} no encontrado");
+
+        pedido.IdEstado = nuevoEstadoId;
         await _pedidoRepo.UpdateAsync(pedido);
         await _pedidoRepo.SaveAsync();
     }

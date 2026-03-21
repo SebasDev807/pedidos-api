@@ -19,7 +19,6 @@ public class PedidosController : ControllerBase
     }
 
     [HttpGet]
-    [HttpGet]
     public async Task<IActionResult> GetAll()
     {
         var pedidos = await _service.GetAllAsync();
@@ -27,8 +26,8 @@ public class PedidosController : ControllerBase
         var response = pedidos.Select(pedido => new PedidoResponseDto
         {
             Id = pedido.Id,
-            DireccionEntrega = pedido.DireccionEntrega,
-            Total = pedido.Total,
+            IdDireccionEntrega = pedido.IdDireccionEntrega,
+            Total = pedido.ValorTotal,
             Estado = pedido.EstadoPedido?.Nombre ?? "Desconocido",
             FechaCreacion = pedido.FechaCreacion,
             FechaEntrega = pedido.FechaEntrega,
@@ -50,13 +49,11 @@ public class PedidosController : ControllerBase
         var pedido = await _service.GetByIdAsync(id);
         if (pedido == null) return NotFound($"Pedido con id {id} no existe");
 
-        //Mapear DTO de respuesta
         var response = new PedidoResponseDto
         {
-
             Id = pedido.Id,
-            DireccionEntrega = pedido.DireccionEntrega,
-            Total = pedido.Total,
+            IdDireccionEntrega = pedido.IdDireccionEntrega,
+            Total = pedido.ValorTotal,
             Estado = pedido.EstadoPedido?.Nombre ?? "DESCONOCIDO",
             FechaCreacion = pedido.FechaCreacion,
             FechaEntrega = pedido.FechaEntrega,
@@ -66,7 +63,6 @@ public class PedidosController : ControllerBase
                 Cantidad = detalle.Cantidad,
                 PrecioUnitario = detalle.PrecioUnitario,
                 Subtotal = detalle.Subtotal
-
             }).ToList()
         };
 
@@ -76,7 +72,6 @@ public class PedidosController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CrearPedidoDto crearPedidoDto)
     {
-
         var usuarioId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         var items = crearPedidoDto.Items
@@ -86,17 +81,17 @@ public class PedidosController : ControllerBase
         var pedido = await _service.CreateAsync(
             crearPedidoDto.ClienteId,
             usuarioId,
-            crearPedidoDto.DireccionEntrega,
+            crearPedidoDto.IdDireccionEntrega,
             items
         );
 
         return Created("", new
         {
             id = pedido.Id,
-            clienteId = pedido.ClienteId,
-            direccionEntrega = pedido.DireccionEntrega,
-            total = pedido.Total,
-            estadoId = pedido.EstadoPedidoId,
+            clienteId = pedido.IdCliente,
+            idDireccionEntrega = pedido.IdDireccionEntrega,
+            total = pedido.ValorTotal,
+            estadoId = pedido.IdEstado,
             fechaCreacion = pedido.FechaCreacion
         });
     }

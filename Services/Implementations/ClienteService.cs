@@ -39,7 +39,7 @@ public class ClienteService : IClienteService
     public async Task<Direccion> AgregarDireccionAsync(int usuarioId, CrearDireccionDto dto)
     {
         var cliente = await _clienteRepo.GetByUsuarioIdAsync(usuarioId)
-            ?? throw new Exception("Cliente no encontrado");
+            ?? throw new KeyNotFoundException("Cliente no encontrado");
 
         var direccion = new Direccion
         {
@@ -57,14 +57,13 @@ public class ClienteService : IClienteService
     public async Task EliminarDireccionAsync(int usuarioId, int direccionId)
     {
         var cliente = await _clienteRepo.GetByUsuarioIdAsync(usuarioId)
-            ?? throw new Exception("Cliente no encontrado");
+            ?? throw new KeyNotFoundException("Cliente no encontrado");
 
         var direccion = await _direccionRepo.GetByIdAsync(direccionId)
-            ?? throw new Exception("Dirección no encontrada");
+            ?? throw new KeyNotFoundException("Dirección no encontrada");
 
-        // Verifica que la dirección pertenece al cliente
         if (direccion.ClienteId != cliente.Id)
-            throw new ConflictExcption("No tienes permiso para eliminar esta dirección");
+            throw new UnauthorizedAccessException("No tienes permiso para eliminar esta dirección");
 
         await _direccionRepo.DeleteAsync(direccionId);
         await _direccionRepo.SaveAsync();

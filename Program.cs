@@ -1,13 +1,15 @@
+using Dapper;
 using DeliveryApi.Config;
-using DeliveryApi.Data;
 using DeliveryApi.Repositories.Interfaces;
 using DeliveryApi.Repositories.Implementations;
 using DeliveryApi.Services.Interfaces;
 using DeliveryApi.Services.Implementations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.Data.Sqlite;
+using System.Data;
 using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using DeliveryApi.Middlewares;
 
 //Cargar variables de entorno
 DotNetEnv.Env.Load();
@@ -26,9 +28,13 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 // Base de datos
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("SQLite"))
-);
+builder.Services.AddScoped<IDbConnection>(sp =>
+{
+    var connection = new SqliteConnection(builder.Configuration.GetConnectionString("SQLite"));
+    connection.Open();
+    connection.Execute("PRAGMA foreign_keys = ON;");
+    return connection;
+});
 
 //Repositorios
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
@@ -74,7 +80,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 

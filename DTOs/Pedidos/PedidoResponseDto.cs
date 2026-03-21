@@ -3,7 +3,7 @@ namespace DeliveryApi.DTOs.Pedidos;
 public class PedidoResponseDto
 {
     public int Id { get; set; }
-    public string DireccionEntrega { get; set; } = null!;
+    public int IdDireccionEntrega { get; set; }
     public decimal Total { get; set; }
     public string Estado { get; set; } = null!;
     public DateTime FechaCreacion { get; set; }
