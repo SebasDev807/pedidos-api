@@ -1,9 +1,10 @@
-using DeliveryApi.Config;
-using DeliveryApi.Data;
-using DeliveryApi.Repositories.Interfaces;
-using DeliveryApi.Repositories.Implementations;
-using DeliveryApi.Services.Interfaces;
-using DeliveryApi.Services.Implementations;
+using DeliveryApi.Infrastructure.Config;
+using Scalar.AspNetCore;
+using DeliveryApi.Infrastructure.Persistence;
+using DeliveryApi.Domain.Interfaces;
+using DeliveryApi.Infrastructure.Repositories;
+using DeliveryApi.Application.UseCases.Interfaces;
+using DeliveryApi.Application.UseCases.Implementations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -34,14 +35,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
 builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
+builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
+builder.Services.AddScoped<IDireccionRepository, DireccionRepository>();
 
 //Servicios
 builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<IPedidoService, PedidoService>();
-builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
-builder.Services.AddScoped<IDireccionRepository, DireccionRepository>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
-
 
 //Auth
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
@@ -71,7 +71,9 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
+
 
 app.UseHttpsRedirection();
 
