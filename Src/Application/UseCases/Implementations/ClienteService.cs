@@ -49,7 +49,7 @@ public class ClienteService : IClienteService
             ClienteId = cliente.Id
         };
 
-        await _direccionRepo.AddAsync(direccion);
+        await _direccionRepo.AddAsync(diereccion);
         await _direccionRepo.SaveAsync();
 
         return new DireccionDto

@@ -77,6 +77,7 @@ public class ProductosController : ControllerBase
         if(producto == null) return NotFound($"Producto con id {id} no existe");
 
         await _service.DeleteAsync(id);
+        
         return NoContent();
     }
 
