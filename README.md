@@ -3,7 +3,7 @@
 ## Stack
 - **ASP.NET Core** (net10.0)
 - **SQLite** con Entity Framework Core
-- **Patrón Repositorio**
+- **Clean Architecture** ✅
 - **JWT** ✅
 - **BCrypt** para hash de passwords ✅
 
@@ -20,76 +20,86 @@ dotnet add package DotNetEnv
 
 ---
 
-## Estructura de carpetas actual
+## Arquitectura
+
+El proyecto fue migrado a **Clean Architecture**, separando responsabilidades en cuatro capas principales:
+
+- **Domain** — Entidades del negocio e interfaces de repositorios. No tiene dependencias externas.
+- **Application** — DTOs y casos de uso (servicios). Solo depende de Domain.
+- **Infrastructure** — Implementación de repositorios, contexto de base de datos y configuración. Depende de Domain.
+- **Controllers** — Punto de entrada HTTP. Orquesta Application e Infrastructure.
+
+---
+
+## Estructura de carpetas
+
 ```
 DeliveryApi/
-├── Controllers/
-│   ├── PruebaController.cs        ✅ (eliminar en prod)
-│   ├── AuthController.cs          ✅
-│   ├── ProductosController.cs     ✅
-│   ├── PedidosController.cs       ✅
-│   └── ClientesController.cs      ✅
-├── Models/
-│   ├── Usuario.cs                 ✅
-│   ├── Cliente.cs                 ✅
-│   ├── Direccion.cs               ✅
-│   ├── Producto.cs                ✅
-│   ├── Pedido.cs                  ✅
-│   ├── DetallePedido.cs           ✅
-│   └── EstadoPedido.cs            ✅
-├── DTOs/
-│   ├── Auth/
-│   │   ├── RegisterDto.cs         ✅
-│   │   ├── LoginRequestDto.cs     ✅
-│   │   └── LoginResponseDto.cs    ✅
-│   ├── Productos/
-│   │   ├── ProductoDto.cs         ✅
-│   │   └── CrearProductoDto.cs    ✅
-│   ├── Pedidos/
-│   │   ├── CrearPedidoDto.cs      ✅
-│   │   ├── PedidoResponseDto.cs   ✅
-│   │   └── ActualizarEstadoDto.cs ✅
-│   └── Clientes/
-│       ├── ClienteDto.cs          ✅
-│       └── CrearDireccionDto.cs   ✅
-├── Repositories/
-│   ├── Interfaces/
-│   │   ├── IGenericRepository.cs  ✅
-│   │   ├── IUsuarioRepository.cs  ✅
-│   │   ├── IProductoRepository.cs ✅
-│   │   ├── IPedidoRepository.cs   ✅
-│   │   ├── IClienteRepository.cs  ✅
-│   │   └── IDireccionRepository.cs ✅
-│   └── Implementations/
-│       ├── UsuarioRepository.cs   ✅
-│       ├── ProductoRepository.cs  ✅
-│       ├── PedidoRepository.cs    ✅
-│       ├── ClienteRepository.cs   ✅
-│       └── DireccionRepository.cs ✅
-├── Services/
-│   ├── Interfaces/
-│   │   ├── IAuthService.cs        ✅
-│   │   ├── IUsuarioService.cs     ✅
-│   │   ├── IProductoService.cs    ✅
-│   │   ├── IPedidoService.cs      ✅
-│   │   └── IClienteService.cs     ✅
-│   └── Implementations/
-│       ├── AuthService.cs         ✅
-│       ├── UsuarioService.cs      ✅
-│       ├── ProductoService.cs     ✅
-│       ├── PedidoService.cs       ✅
-│       └── ClienteService.cs      ✅
-├── Config/
-│   └── JwtSettings.cs             ✅
-├── Exceptions/
-│   └── ConflictException.cs       ✅
-├── Data/
-│   ├── AppDbContext.cs            ✅
-│   ├── pedidos.db                 ✅
-│   └── Migrations/                ✅
-├── .env                           ✅ (no subir al repo)
-├── appsettings.json               ✅
-└── Program.cs                     ✅
+└── Src/
+    ├── Application/
+    │   ├── DTOs/
+    │   │   ├── Auth/
+    │   │   │   ├── LoginRequestDto.cs
+    │   │   │   ├── LoginResponseDto.cs
+    │   │   │   └── RegisterDto.cs
+    │   │   ├── Clientes/
+    │   │   │   ├── ClienteDto.cs
+    │   │   │   └── CrearDireccionDto.cs
+    │   │   ├── Pedidos/
+    │   │   │   ├── ActualizarEstadoDto.cs
+    │   │   │   ├── CrearPedidoDto.cs
+    │   │   │   └── PedidoResponseDto.cs
+    │   │   └── Productos/
+    │   │       ├── CrearProductoDto.cs
+    │   │       └── ProductoDto.cs
+    │   └── UseCases/
+    │       ├── Implementations/
+    │       │   ├── AuthService.cs
+    │       │   ├── ClienteService.cs
+    │       │   ├── PedidoService.cs
+    │       │   └── ProductoService.cs
+    │       └── Interfaces/
+    │           ├── IAuthService.cs
+    │           ├── IClienteService.cs
+    │           ├── IPedidoService.cs
+    │           └── IProductoService.cs
+    ├── Controllers/
+    │   ├── AuthController.cs
+    │   ├── ClienteController.cs
+    │   ├── PedidosController.cs
+    │   ├── ProductosController.cs
+    │   └── PruebaController.cs
+    ├── Domain/
+    │   ├── Entities/
+    │   │   ├── Cliente.cs
+    │   │   ├── DetallePedido.cs
+    │   │   ├── Direccion.cs
+    │   │   ├── EstadoPedido.cs
+    │   │   ├── Pedido.cs
+    │   │   ├── Producto.cs
+    │   │   └── Usuario.cs
+    │   └── Interfaces/
+    │       ├── IClienteRepository.cs
+    │       ├── IDireccionRepository.cs
+    │       ├── IGenericRepository.cs
+    │       ├── IPedidoRepository.cs
+    │       ├── IProductoRepository.cs
+    │       └── IUsuarioRepository.cs
+    ├── Exceptions/
+    │   ├── ConflictException.cs
+    │   └── NotFoundException.cs
+    └── Infrastructure/
+        ├── Config/
+        │   └── JwtSettings.cs
+        ├── Persistence/
+        │   ├── AppDbContext.cs
+        │   └── Migrations/
+        └── Repositories/
+            ├── ClienteRepository.cs
+            ├── DireccionRepository.cs
+            ├── PedidoRepository.cs
+            ├── ProductoRepository.cs
+            └── UsuarioRepository.cs
 ```
 
 ---
@@ -168,10 +178,11 @@ JWT_EXPIRE_MINUTES=60
 - Actualizar estado del pedido
 - Gestión de direcciones por cliente
 - Endpoints protegidos con `[Authorize]`
+- **Migración a Clean Architecture** — separación por capas Domain / Application / Infrastructure / Controllers
 
 ---
 
-## Pendiente para mañana ⬜
+## Pendiente ⬜
 
 ### 1. Manejo global de errores
 - Crear `Middleware/ExceptionMiddleware.cs`
@@ -195,7 +206,6 @@ public decimal Precio { get; set; }
 ### 3. Limpieza de código
 - Quitar `IgnoreCycles` de `Program.cs`
 - Eliminar `PruebaController.cs`
-- Renombrar `Direccion_` a algo más limpio + nueva migración
 - Obtener `clienteId` automáticamente desde el token en `PedidosController`
 
 ### 4. AutoMapper (opcional)
